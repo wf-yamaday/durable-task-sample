@@ -1,0 +1,28 @@
+name: "[client] CI - Lint"
+
+on:
+  pull_request:
+    paths:
+      - "client/**"
+      - ".github/workflows/ci-client.yaml"
+  push:
+    paths:
+      - "client/**"
+      - ".github/workflows/ci-client.yaml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: jdx/mise-action@v2
+      - name: Install tools
+        run: mise --cd client install
+      - name: Lint
+        run: mise --cd client run lint
+      - name: Check formatting
+        run: mise --cd client run format

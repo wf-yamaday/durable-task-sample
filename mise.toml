@@ -1,3 +1,13 @@
-[tools]
-python = "3.14"
-uv = "0.7.20"
+[tasks.lint]
+description = "Run lint and type checks for all projects"
+run = [
+    "mise --cd client run lint",
+    "mise --cd worker run lint",
+]
+
+[tasks.format]
+description = "Check Python formatting for all projects"
+run = [
+    "mise --cd client run format",
+    "mise --cd worker run format",
+]
