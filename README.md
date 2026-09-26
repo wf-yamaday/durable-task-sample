@@ -20,16 +20,20 @@ mise install
 ## Commands
 
 ```sh
-# Run checks for all projects.
+# Run lint, type, and formatting checks for all projects.
 mise run lint
+
+# Apply formatting to all projects.
 mise run format
 
 # Run an individual project.
 mise --cd client run lint
+mise --cd client run format
 uv run --directory client durable-task-client
 
 mise --cd worker run lint
+mise --cd worker run format
 uv run --directory worker durable-task-worker
 ```
 
-`mise run lint` runs Ruff and ty. To apply formatting, run `uv run --directory <project> ruff format .`.
+`mise run lint` runs Ruff, ty, and Ruff formatting checks. Use `mise run format` to apply formatting.

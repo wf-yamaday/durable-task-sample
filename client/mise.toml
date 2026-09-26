@@ -3,12 +3,13 @@ python = "3.14"
 uv = "0.7.20"
 
 [tasks.lint]
-description = "Run Ruff lint and ty type checks"
+description = "Run Ruff, ty, and formatting checks"
 run = [
     "uv run ruff check .",
     "uv run ty check",
+    "uv run ruff format --check .",
 ]
 
 [tasks.format]
-description = "Check Python formatting"
-run = "uv run ruff format --check ."
+description = "Format Python code"
+run = "uv run ruff format ."

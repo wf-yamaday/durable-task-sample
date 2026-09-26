@@ -6,7 +6,7 @@ run = [
 ]
 
 [tasks.format]
-description = "Check Python formatting for all projects"
+description = "Format Python code for all projects"
 run = [
     "mise --cd client run format",
     "mise --cd worker run format",

@@ -24,5 +24,3 @@ jobs:
         run: mise --cd client install
       - name: Lint
         run: mise --cd client run lint
-      - name: Check formatting
-        run: mise --cd client run format
