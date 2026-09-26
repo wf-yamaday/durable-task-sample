@@ -1,5 +1,5 @@
 [tasks.lint]
-description = "Run lint and type checks for all projects"
+description = "Run lint, type, and formatting checks for all projects"
 run = [
     "mise --cd client run lint",
     "mise --cd worker run lint",
@@ -11,3 +11,22 @@ run = [
     "mise --cd client run format",
     "mise --cd worker run format",
 ]
+
+[tasks."dts-emulator:up"]
+description = "Ensure the Durable Task Scheduler emulator is running"
+run = """
+if docker container inspect dts-emulator >/dev/null 2>&1; then
+  docker container start dts-emulator >/dev/null 2>&1 || true
+else
+  docker run --detach --rm \
+    --name dts-emulator \
+    -p 8080:8080 \
+    -p 8081:8081 \
+    mcr.microsoft.com/dts/dts-emulator \
+    || docker container inspect dts-emulator >/dev/null 2>&1
+fi
+"""
+
+[tasks."dts-emulator:down"]
+description = "Stop the Durable Task Scheduler emulator"
+run = "docker container stop dts-emulator >/dev/null 2>&1 || true"

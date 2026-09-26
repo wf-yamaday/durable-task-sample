@@ -3,7 +3,9 @@ name = "durable-task-client"
 version = "0.1.0"
 description = "Client application for Durable Task orchestrations"
 requires-python = ">=3.14"
-dependencies = []
+dependencies = [
+    "durabletask-azuremanaged",
+]
 
 [dependency-groups]
 dev = [

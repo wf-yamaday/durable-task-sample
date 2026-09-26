@@ -3,7 +3,9 @@ name = "durable-task-worker"
 version = "0.1.0"
 description = "Worker application for Durable Task orchestrations and activities"
 requires-python = ">=3.14"
-dependencies = []
+dependencies = [
+    "durabletask-azuremanaged",
+]
 
 [dependency-groups]
 dev = [

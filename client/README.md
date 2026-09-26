@@ -7,6 +7,6 @@ Durable Task orchestration の開始、状態照会、外部イベント送信�
 ```sh
 mise run lint
 mise run format
-uv run durable-task-client
+mise run start
 docker build -f .docker/Dockerfile -t durable-task-client .
 ```

@@ -7,6 +7,6 @@ Durable Task のオーケストレーターとアクティビティ関数を実�
 ```sh
 mise run lint
 mise run format
-uv run durable-task-worker
+mise run start
 docker build -f .docker/Dockerfile -t durable-task-worker .
 ```
