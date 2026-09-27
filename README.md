@@ -44,4 +44,4 @@ mise --cd worker run start
 
 `mise run lint` runs Ruff, ty, and Ruff formatting checks. Use `mise run format` to apply formatting.
 
-`mise run dts-emulator:up` starts the emulator in the background if it is not already running. Use `mise run dts-emulator:down` to stop it. Its dashboard is available at `http://localhost:8080` and its scheduler endpoint is available at `http://localhost:8081`.
+`mise run dts-emulator:up` starts the emulator in the background if it is not already running. Use `mise run dts-emulator:down` to stop it. Its dashboard is available at `http://localhost:8082` and its scheduler endpoint is available at `localhost:8080`.

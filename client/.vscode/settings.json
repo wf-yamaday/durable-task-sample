@@ -1,0 +1,7 @@
+{
+  "python.defaultInterpreterPath": "${workspaceFolder}/.venv/bin/python",
+  "ruff.path": ["${workspaceFolder}/.venv/bin/ruff"],
+  "ruff.importStrategy": "fromEnvironment",
+  "ty.path": ["${workspaceFolder}/.venv/bin/ty"],
+  "ty.importStrategy": "fromEnvironment"
+}

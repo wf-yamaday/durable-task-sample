@@ -22,6 +22,7 @@ else
     --name dts-emulator \
     -p 8080:8080 \
     -p 8081:8081 \
+    -p 127.0.0.1:8082:8082 \
     mcr.microsoft.com/dts/dts-emulator \
     || docker container inspect dts-emulator >/dev/null 2>&1
 fi
