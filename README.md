@@ -12,6 +12,8 @@ Durable Task SDK で client、orchestrator worker、activity worker を分離し
 
 各プロジェクトは独立した uv プロジェクトです。依存関係はプロジェクトごとの `uv.lock` で個別に管理します。
 
+Azure Container Apps、Durable Task Scheduler、Managed Identity などのリソース定義は [`bicep`](./bicep) にあります。
+
 ## Setup
 
 ```sh
@@ -50,3 +52,5 @@ mise --cd activity-worker run start
 `mise run lint` runs Ruff, ty, and Ruff formatting checks. Use `mise run format` to apply formatting.
 
 `mise run dts-emulator:up` starts the emulator in the background if it is not already running. Use `mise run dts-emulator:down` to stop it. Its dashboard is available at `http://localhost:8082` and its scheduler endpoint is available at `localhost:8080`.
+
+Use `mise run infra:build` to validate the Azure Bicep template. See [`bicep/README.md`](./bicep/README.md) for deployment commands.

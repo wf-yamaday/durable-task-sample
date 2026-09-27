@@ -4,12 +4,20 @@ import argparse
 import json
 import logging
 
+from azure.identity import DefaultAzureCredential
 from durabletask.azuremanaged.client import DurableTaskSchedulerClient
 
 from settings import Settings
 
 DEFAULT_ACTIVITY_COUNT = 10
 logger = logging.getLogger(__name__)
+
+
+def get_token_credential(settings: Settings) -> DefaultAzureCredential | None:
+    """Create a managed identity credential when connecting to Azure."""
+    if not settings.DTS_USE_MANAGED_IDENTITY:
+        return None
+    return DefaultAzureCredential(managed_identity_client_id=settings.AZURE_CLIENT_ID)
 
 
 def positive_int(value: str) -> int:
@@ -47,8 +55,8 @@ def main() -> None:
     with DurableTaskSchedulerClient(
         host_address=settings.DTS_ENDPOINT,
         taskhub=settings.DTS_TASKHUB,
-        token_credential=None,
-        secure_channel=False,
+        token_credential=get_token_credential(settings),
+        secure_channel=settings.DTS_SECURE_CHANNEL,
     ) as client:
         instance_id = client.schedule_new_orchestration(
             "calc_average", input=args.count

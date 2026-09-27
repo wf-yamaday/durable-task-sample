@@ -1,3 +1,6 @@
+[tools]
+"pipx:azure-cli" = { version = "2.90.0", uvx_args = "--prerelease allow" }
+
 [tasks.lint]
 description = "Run lint, type, and formatting checks for all projects"
 run = [
@@ -33,3 +36,89 @@ fi
 [tasks."dts-emulator:down"]
 description = "Stop the Durable Task Scheduler emulator"
 run = "docker container stop dts-emulator >/dev/null 2>&1 || true"
+
+[tasks."infra:build"]
+description = "Validate the Bicep infrastructure template"
+run = "az bicep build --file bicep/main.bicep --stdout >/dev/null"
+
+[tasks."infra:setup"]
+description = "Create the Japan East resource group and register required Azure resource providers"
+run = """
+: "${AZURE_RESOURCE_GROUP:?Set AZURE_RESOURCE_GROUP to the target resource group}"
+az group create --name "$AZURE_RESOURCE_GROUP" --location "${AZURE_LOCATION:-japaneast}"
+for provider in \
+  Microsoft.App \
+  Microsoft.Authorization \
+  Microsoft.ContainerRegistry \
+  Microsoft.DurableTask \
+  Microsoft.ManagedIdentity \
+  Microsoft.Network \
+  Microsoft.OperationalInsights; do
+  az provider register --namespace "$provider" --wait
+done
+"""
+
+[tasks."infra:what-if"]
+description = "Preview infrastructure changes; set AZURE_RESOURCE_GROUP and pass Bicep parameter overrides after --"
+depends = ["infra:build"]
+run = """
+: "${AZURE_RESOURCE_GROUP:?Set AZURE_RESOURCE_GROUP to the target resource group}"
+az deployment group what-if \
+  --resource-group "$AZURE_RESOURCE_GROUP" \
+  --template-file bicep/main.bicep \
+  --parameters bicep/main.bicepparam \
+  "$@"
+"""
+
+[tasks."infra:deploy"]
+description = "Deploy infrastructure; set AZURE_RESOURCE_GROUP and pass Bicep parameter overrides after --"
+depends = ["infra:build"]
+run = """
+: "${AZURE_RESOURCE_GROUP:?Set AZURE_RESOURCE_GROUP to the target resource group}"
+az deployment group create \
+  --resource-group "$AZURE_RESOURCE_GROUP" \
+  --template-file bicep/main.bicep \
+  --parameters bicep/main.bicepparam \
+  "$@"
+"""
+
+[tasks."image:push:client"]
+description = "Build and push the client image; set AZURE_CONTAINER_REGISTRY_LOGIN_SERVER"
+run = """
+: "${AZURE_CONTAINER_REGISTRY_LOGIN_SERVER:?Set AZURE_CONTAINER_REGISTRY_LOGIN_SERVER to the ACR login server}"
+registry_name="${AZURE_CONTAINER_REGISTRY_LOGIN_SERVER%%.*}"
+image="${AZURE_CONTAINER_REGISTRY_LOGIN_SERVER}/durable-task-client:${IMAGE_TAG:-latest}"
+az acr login --name "$registry_name"
+docker build -f client/.docker/Dockerfile --tag "$image" client
+docker push "$image"
+"""
+
+[tasks."image:push:orchestrator-worker"]
+description = "Build and push the orchestrator worker image; set AZURE_CONTAINER_REGISTRY_LOGIN_SERVER"
+run = """
+: "${AZURE_CONTAINER_REGISTRY_LOGIN_SERVER:?Set AZURE_CONTAINER_REGISTRY_LOGIN_SERVER to the ACR login server}"
+registry_name="${AZURE_CONTAINER_REGISTRY_LOGIN_SERVER%%.*}"
+image="${AZURE_CONTAINER_REGISTRY_LOGIN_SERVER}/durable-task-orchestrator-worker:${IMAGE_TAG:-latest}"
+az acr login --name "$registry_name"
+docker build -f orchestrator-worker/.docker/Dockerfile --tag "$image" orchestrator-worker
+docker push "$image"
+"""
+
+[tasks."image:push:activity-worker"]
+description = "Build and push the activity worker image; set AZURE_CONTAINER_REGISTRY_LOGIN_SERVER"
+run = """
+: "${AZURE_CONTAINER_REGISTRY_LOGIN_SERVER:?Set AZURE_CONTAINER_REGISTRY_LOGIN_SERVER to the ACR login server}"
+registry_name="${AZURE_CONTAINER_REGISTRY_LOGIN_SERVER%%.*}"
+image="${AZURE_CONTAINER_REGISTRY_LOGIN_SERVER}/durable-task-activity-worker:${IMAGE_TAG:-latest}"
+az acr login --name "$registry_name"
+docker build -f activity-worker/.docker/Dockerfile --tag "$image" activity-worker
+docker push "$image"
+"""
+
+[tasks."image:push"]
+description = "Build and push all Container Apps images"
+depends = [
+  "image:push:client",
+  "image:push:orchestrator-worker",
+  "image:push:activity-worker",
+]

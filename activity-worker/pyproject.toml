@@ -4,6 +4,7 @@ version = "0.1.0"
 description = "Worker application for Durable Task activities"
 requires-python = ">=3.14"
 dependencies = [
+    "azure-identity>=1.25.3",
     "durabletask-azuremanaged",
     "pydantic-settings>=2.15.0",
 ]

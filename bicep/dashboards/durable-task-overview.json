@@ -1,0 +1,94 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "graphTooltip": 1,
+  "panels": [
+    {
+      "datasource": { "type": "grafana-azure-monitor-datasource", "uid": "azure-monitor" },
+      "fieldConfig": { "defaults": { "unit": "short", "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }] } }, "overrides": [] },
+      "gridPos": { "h": 7, "w": 6, "x": 0, "y": 0 },
+      "id": 1,
+      "options": { "colorMode": "value", "graphMode": "area", "justifyMode": "auto", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "textMode": "auto" },
+      "targets": [{ "azureMonitor": { "aggregation": "Maximum", "dimensionFilters": [], "metricName": "Replicas", "metricNamespace": "Microsoft.App/containerApps", "resourceGroup": "__RESOURCE_GROUP__", "resourceName": "__ORCHESTRATOR_APP__", "resourceUri": "/subscriptions/__SUBSCRIPTION_ID__/resourceGroups/__RESOURCE_GROUP__/providers/Microsoft.App/containerApps/__ORCHESTRATOR_APP__", "timeGrain": "auto" }, "queryType": "Azure Monitor", "refId": "A", "subscription": "__SUBSCRIPTION_ID__" }],
+      "title": "Orchestrator worker replicas",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "grafana-azure-monitor-datasource", "uid": "azure-monitor" },
+      "fieldConfig": { "defaults": { "unit": "short", "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }] } }, "overrides": [] },
+      "gridPos": { "h": 7, "w": 6, "x": 6, "y": 0 },
+      "id": 2,
+      "options": { "colorMode": "value", "graphMode": "area", "justifyMode": "auto", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "textMode": "auto" },
+      "targets": [{ "azureMonitor": { "aggregation": "Maximum", "dimensionFilters": [], "metricName": "Replicas", "metricNamespace": "Microsoft.App/containerApps", "resourceGroup": "__RESOURCE_GROUP__", "resourceName": "__ACTIVITY_APP__", "resourceUri": "/subscriptions/__SUBSCRIPTION_ID__/resourceGroups/__RESOURCE_GROUP__/providers/Microsoft.App/containerApps/__ACTIVITY_APP__", "timeGrain": "auto" }, "queryType": "Azure Monitor", "refId": "A", "subscription": "__SUBSCRIPTION_ID__" }],
+      "title": "Activity worker replicas",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "grafana-azure-monitor-datasource", "uid": "azure-monitor" },
+      "fieldConfig": { "defaults": { "unit": "short", "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "red", "value": 1 }] } }, "overrides": [] },
+      "gridPos": { "h": 7, "w": 6, "x": 12, "y": 0 },
+      "id": 3,
+      "options": { "colorMode": "value", "graphMode": "area", "justifyMode": "auto", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "textMode": "auto" },
+      "targets": [{ "azureMonitor": { "aggregation": "Maximum", "dimensionFilters": [], "metricName": "ConnectedWorkers", "metricNamespace": "Microsoft.DurableTask/schedulers", "resourceGroup": "__RESOURCE_GROUP__", "resourceName": "__SCHEDULER__", "resourceUri": "/subscriptions/__SUBSCRIPTION_ID__/resourceGroups/__RESOURCE_GROUP__/providers/Microsoft.DurableTask/schedulers/__SCHEDULER__", "timeGrain": "auto" }, "queryType": "Azure Monitor", "refId": "A", "subscription": "__SUBSCRIPTION_ID__" }],
+      "title": "Connected Durable Task workers",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "grafana-azure-monitor-datasource", "uid": "azure-monitor" },
+      "fieldConfig": { "defaults": { "unit": "short", "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "orange", "value": 1 }] } }, "overrides": [] },
+      "gridPos": { "h": 7, "w": 6, "x": 18, "y": 0 },
+      "id": 4,
+      "options": { "colorMode": "value", "graphMode": "area", "justifyMode": "auto", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "textMode": "auto" },
+      "targets": [{ "azureMonitor": { "aggregation": "Maximum", "dimensionFilters": [], "metricName": "OrchestratorPendingItems", "metricNamespace": "Microsoft.DurableTask/schedulers", "resourceGroup": "__RESOURCE_GROUP__", "resourceName": "__SCHEDULER__", "resourceUri": "/subscriptions/__SUBSCRIPTION_ID__/resourceGroups/__RESOURCE_GROUP__/providers/Microsoft.DurableTask/schedulers/__SCHEDULER__", "timeGrain": "auto" }, "queryType": "Azure Monitor", "refId": "A", "subscription": "__SUBSCRIPTION_ID__" }, { "azureMonitor": { "aggregation": "Maximum", "dimensionFilters": [], "metricName": "ActivityPendingItems", "metricNamespace": "Microsoft.DurableTask/schedulers", "resourceGroup": "__RESOURCE_GROUP__", "resourceName": "__SCHEDULER__", "resourceUri": "/subscriptions/__SUBSCRIPTION_ID__/resourceGroups/__RESOURCE_GROUP__/providers/Microsoft.DurableTask/schedulers/__SCHEDULER__", "timeGrain": "auto" }, "queryType": "Azure Monitor", "refId": "B", "subscription": "__SUBSCRIPTION_ID__" }],
+      "title": "Pending work items",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "grafana-azure-monitor-datasource", "uid": "azure-monitor" },
+      "fieldConfig": { "defaults": { "custom": { "drawStyle": "line", "lineWidth": 1, "fillOpacity": 10, "showPoints": "auto", "stacking": { "mode": "none", "group": "A" } }, "unit": "short" }, "overrides": [] },
+      "gridPos": { "h": 9, "w": 12, "x": 0, "y": 7 },
+      "id": 5,
+      "options": { "legend": { "displayMode": "table", "placement": "bottom", "calcs": ["lastNotNull", "max"] }, "tooltip": { "mode": "multi", "sort": "none" } },
+      "targets": [{ "azureMonitor": { "aggregation": "Maximum", "dimensionFilters": [], "metricName": "Replicas", "metricNamespace": "Microsoft.App/containerApps", "resourceGroup": "__RESOURCE_GROUP__", "resourceName": "__ORCHESTRATOR_APP__", "resourceUri": "/subscriptions/__SUBSCRIPTION_ID__/resourceGroups/__RESOURCE_GROUP__/providers/Microsoft.App/containerApps/__ORCHESTRATOR_APP__", "timeGrain": "auto" }, "queryType": "Azure Monitor", "refId": "A", "subscription": "__SUBSCRIPTION_ID__" }, { "azureMonitor": { "aggregation": "Maximum", "dimensionFilters": [], "metricName": "Replicas", "metricNamespace": "Microsoft.App/containerApps", "resourceGroup": "__RESOURCE_GROUP__", "resourceName": "__ACTIVITY_APP__", "resourceUri": "/subscriptions/__SUBSCRIPTION_ID__/resourceGroups/__RESOURCE_GROUP__/providers/Microsoft.App/containerApps/__ACTIVITY_APP__", "timeGrain": "auto" }, "queryType": "Azure Monitor", "refId": "B", "subscription": "__SUBSCRIPTION_ID__" }],
+      "title": "Worker replica count",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "grafana-azure-monitor-datasource", "uid": "azure-monitor" },
+      "fieldConfig": { "defaults": { "custom": { "drawStyle": "line", "lineWidth": 1, "fillOpacity": 10, "showPoints": "auto", "stacking": { "mode": "none", "group": "A" } }, "unit": "short" }, "overrides": [] },
+      "gridPos": { "h": 9, "w": 12, "x": 12, "y": 7 },
+      "id": 6,
+      "options": { "legend": { "displayMode": "table", "placement": "bottom", "calcs": ["lastNotNull", "max"] }, "tooltip": { "mode": "multi", "sort": "none" } },
+      "targets": [{ "azureMonitor": { "aggregation": "Maximum", "dimensionFilters": [], "metricName": "OrchestratorPendingItems", "metricNamespace": "Microsoft.DurableTask/schedulers", "resourceGroup": "__RESOURCE_GROUP__", "resourceName": "__SCHEDULER__", "resourceUri": "/subscriptions/__SUBSCRIPTION_ID__/resourceGroups/__RESOURCE_GROUP__/providers/Microsoft.DurableTask/schedulers/__SCHEDULER__", "timeGrain": "auto" }, "queryType": "Azure Monitor", "refId": "A", "subscription": "__SUBSCRIPTION_ID__" }, { "azureMonitor": { "aggregation": "Maximum", "dimensionFilters": [], "metricName": "ActivityPendingItems", "metricNamespace": "Microsoft.DurableTask/schedulers", "resourceGroup": "__RESOURCE_GROUP__", "resourceName": "__SCHEDULER__", "resourceUri": "/subscriptions/__SUBSCRIPTION_ID__/resourceGroups/__RESOURCE_GROUP__/providers/Microsoft.DurableTask/schedulers/__SCHEDULER__", "timeGrain": "auto" }, "queryType": "Azure Monitor", "refId": "B", "subscription": "__SUBSCRIPTION_ID__" }, { "azureMonitor": { "aggregation": "Maximum", "dimensionFilters": [], "metricName": "OrchestratorActiveItems", "metricNamespace": "Microsoft.DurableTask/schedulers", "resourceGroup": "__RESOURCE_GROUP__", "resourceName": "__SCHEDULER__", "resourceUri": "/subscriptions/__SUBSCRIPTION_ID__/resourceGroups/__RESOURCE_GROUP__/providers/Microsoft.DurableTask/schedulers/__SCHEDULER__", "timeGrain": "auto" }, "queryType": "Azure Monitor", "refId": "C", "subscription": "__SUBSCRIPTION_ID__" }, { "azureMonitor": { "aggregation": "Maximum", "dimensionFilters": [], "metricName": "ActivityActiveItems", "metricNamespace": "Microsoft.DurableTask/schedulers", "resourceGroup": "__RESOURCE_GROUP__", "resourceName": "__SCHEDULER__", "resourceUri": "/subscriptions/__SUBSCRIPTION_ID__/resourceGroups/__RESOURCE_GROUP__/providers/Microsoft.DurableTask/schedulers/__SCHEDULER__", "timeGrain": "auto" }, "queryType": "Azure Monitor", "refId": "D", "subscription": "__SUBSCRIPTION_ID__" }],
+      "title": "Durable Task work items",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "grafana-azure-monitor-datasource", "uid": "azure-monitor" },
+      "fieldConfig": { "defaults": { "custom": { "drawStyle": "line", "lineWidth": 1, "fillOpacity": 10, "showPoints": "auto", "stacking": { "mode": "none", "group": "A" } }, "unit": "short" }, "overrides": [] },
+      "gridPos": { "h": 9, "w": 12, "x": 0, "y": 16 },
+      "id": 7,
+      "options": { "legend": { "displayMode": "table", "placement": "bottom", "calcs": ["lastNotNull", "max"] }, "tooltip": { "mode": "multi", "sort": "none" } },
+      "targets": [{ "azureMonitor": { "aggregation": "Total", "dimensionFilters": [], "metricName": "OrchestrationActions", "metricNamespace": "Microsoft.DurableTask/schedulers", "resourceGroup": "__RESOURCE_GROUP__", "resourceName": "__SCHEDULER__", "resourceUri": "/subscriptions/__SUBSCRIPTION_ID__/resourceGroups/__RESOURCE_GROUP__/providers/Microsoft.DurableTask/schedulers/__SCHEDULER__", "timeGrain": "auto" }, "queryType": "Azure Monitor", "refId": "A", "subscription": "__SUBSCRIPTION_ID__" }, { "azureMonitor": { "aggregation": "Total", "dimensionFilters": [], "metricName": "ActivityActions", "metricNamespace": "Microsoft.DurableTask/schedulers", "resourceGroup": "__RESOURCE_GROUP__", "resourceName": "__SCHEDULER__", "resourceUri": "/subscriptions/__SUBSCRIPTION_ID__/resourceGroups/__RESOURCE_GROUP__/providers/Microsoft.DurableTask/schedulers/__SCHEDULER__", "timeGrain": "auto" }, "queryType": "Azure Monitor", "refId": "B", "subscription": "__SUBSCRIPTION_ID__" }],
+      "title": "Durable Task actions",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "grafana-azure-monitor-datasource", "uid": "azure-monitor" },
+      "fieldConfig": { "defaults": { "custom": { "drawStyle": "line", "lineWidth": 1, "fillOpacity": 10, "showPoints": "auto", "stacking": { "mode": "none", "group": "A" } }, "unit": "short" }, "overrides": [] },
+      "gridPos": { "h": 9, "w": 12, "x": 12, "y": 16 },
+      "id": 8,
+      "options": { "legend": { "displayMode": "table", "placement": "bottom", "calcs": ["lastNotNull", "max"] }, "tooltip": { "mode": "multi", "sort": "none" } },
+      "targets": [{ "azureMonitor": { "aggregation": "Maximum", "dimensionFilters": [], "metricName": "ConnectedWorkers", "metricNamespace": "Microsoft.DurableTask/schedulers", "resourceGroup": "__RESOURCE_GROUP__", "resourceName": "__SCHEDULER__", "resourceUri": "/subscriptions/__SUBSCRIPTION_ID__/resourceGroups/__RESOURCE_GROUP__/providers/Microsoft.DurableTask/schedulers/__SCHEDULER__", "timeGrain": "auto" }, "queryType": "Azure Monitor", "refId": "A", "subscription": "__SUBSCRIPTION_ID__" }],
+      "title": "Connected Durable Task workers",
+      "type": "timeseries"
+    }
+  ],
+  "schemaVersion": 39,
+  "tags": ["durable-task", "container-apps"],
+  "templating": { "list": [] },
+  "time": { "from": "now-6h", "to": "now" },
+  "timezone": "browser",
+  "title": "Durable Task overview",
+  "version": 1
+}

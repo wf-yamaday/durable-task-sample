@@ -6,6 +6,7 @@ from collections.abc import Generator
 from threading import Event
 from typing import Any
 
+from azure.identity import DefaultAzureCredential
 from durabletask import task
 from durabletask.azuremanaged.worker import DurableTaskSchedulerWorker
 
@@ -13,6 +14,13 @@ from settings import Settings
 
 logger = logging.getLogger(__name__)
 RANDOM_NUMBER_ACTIVITY = "generate_random_number"
+
+
+def get_token_credential(settings: Settings) -> DefaultAzureCredential | None:
+    """Create a managed identity credential when connecting to Azure."""
+    if not settings.DTS_USE_MANAGED_IDENTITY:
+        return None
+    return DefaultAzureCredential(managed_identity_client_id=settings.AZURE_CLIENT_ID)
 
 
 def calc_average(
@@ -50,8 +58,8 @@ def main() -> None:
         with DurableTaskSchedulerWorker(
             host_address=settings.DTS_ENDPOINT,
             taskhub=settings.DTS_TASKHUB,
-            token_credential=None,
-            secure_channel=False,
+            token_credential=get_token_credential(settings),
+            secure_channel=settings.DTS_SECURE_CHANNEL,
         ) as worker:
             worker.add_orchestrator(calc_average)
             worker.use_work_item_filters()
