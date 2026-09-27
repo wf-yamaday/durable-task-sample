@@ -1,7 +1,7 @@
 [project]
-name = "durable-task-client"
+name = "durable-task-orchestrator-worker"
 version = "0.1.0"
-description = "Client application for Durable Task orchestrations"
+description = "Worker application for Durable Task orchestrations"
 requires-python = ">=3.14"
 dependencies = [
     "durabletask-azuremanaged",
@@ -15,7 +15,7 @@ dev = [
 ]
 
 [project.scripts]
-durable-task-client = "main:main"
+durable-task-orchestrator-worker = "main:main"
 
 [build-system]
 requires = ["setuptools>=80"]

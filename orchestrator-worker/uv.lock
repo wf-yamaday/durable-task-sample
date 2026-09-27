@@ -262,7 +262,7 @@ wheels = [
 ]
 
 [[package]]
-name = "durable-task-client"
+name = "durable-task-orchestrator-worker"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [

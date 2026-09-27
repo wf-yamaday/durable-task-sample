@@ -1,11 +1,11 @@
-name: "[worker] Build Image"
+name: "[orchestrator-worker] Build Image"
 
 on:
   push:
     branches: [main]
     paths:
-      - "worker/**"
-      - ".github/workflows/build-worker.yaml"
+      - "orchestrator-worker/**"
+      - ".github/workflows/build-orchestrator-worker.yaml"
 
 permissions:
   contents: read
@@ -19,7 +19,7 @@ jobs:
       - name: Build container image
         uses: docker/build-push-action@v6
         with:
-          context: ./worker
-          file: ./worker/.docker/Dockerfile
+          context: ./orchestrator-worker
+          file: ./orchestrator-worker/.docker/Dockerfile
           push: false
-          tags: durable-task-worker:ci
+          tags: durable-task-orchestrator-worker:ci

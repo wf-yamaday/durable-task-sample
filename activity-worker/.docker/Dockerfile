@@ -12,4 +12,4 @@ RUN uv sync --locked --no-dev --no-editable
 
 ENV PATH="/app/.venv/bin:$PATH"
 
-CMD ["durable-task-worker"]
+CMD ["durable-task-activity-worker"]

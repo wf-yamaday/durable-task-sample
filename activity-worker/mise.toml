@@ -15,6 +15,6 @@ description = "Format Python code"
 run = "uv run ruff format ."
 
 [tasks.start]
-description = "Start the worker application"
+description = "Start the activity worker application"
 depends = ["dts-emulator:up"]
-run = "uv run durable-task-worker"
+run = "uv run durable-task-activity-worker"

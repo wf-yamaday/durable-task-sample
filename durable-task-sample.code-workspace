@@ -9,8 +9,12 @@
       "path": "client"
     },
     {
-      "name": "worker",
-      "path": "worker"
+      "name": "orchestrator-worker",
+      "path": "orchestrator-worker"
+    },
+    {
+      "name": "activity-worker",
+      "path": "activity-worker"
     }
   ]
 }

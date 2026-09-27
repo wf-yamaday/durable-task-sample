@@ -2,14 +2,16 @@
 description = "Run lint, type, and formatting checks for all projects"
 run = [
     "mise --cd client run lint",
-    "mise --cd worker run lint",
+    "mise --cd orchestrator-worker run lint",
+    "mise --cd activity-worker run lint",
 ]
 
 [tasks.format]
 description = "Format Python code for all projects"
 run = [
     "mise --cd client run format",
-    "mise --cd worker run format",
+    "mise --cd orchestrator-worker run format",
+    "mise --cd activity-worker run format",
 ]
 
 [tasks."dts-emulator:up"]

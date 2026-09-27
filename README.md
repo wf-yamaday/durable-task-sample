@@ -1,15 +1,16 @@
 # Durable Task Sample
 
-Durable Task SDK で client と worker を分離し、Azure Container Apps 上でのスケーラビリティとアクティビティ関数の分離を調査するモノリポです。
+Durable Task SDK で client、orchestrator worker、activity worker を分離し、Azure Container Apps 上でのスケーラビリティを調査するモノリポです。
 
 ## Structure
 
 | Project | Responsibility |
 | --- | --- |
 | [`client`](./client) | Orchestration の開始、状態照会、外部イベント送信 |
-| [`worker`](./worker) | Orchestrator と activity 関数の実行 |
+| [`orchestrator-worker`](./orchestrator-worker) | Orchestrator 関数の実行 |
+| [`activity-worker`](./activity-worker) | Activity 関数の実行 |
 
-client と worker はそれぞれ独立した uv プロジェクトです。依存関係は `client/uv.lock` と `worker/uv.lock` で個別に管理します。
+各プロジェクトは独立した uv プロジェクトです。依存関係はプロジェクトごとの `uv.lock` で個別に管理します。
 
 ## Setup
 
@@ -37,9 +38,13 @@ mise --cd client run lint
 mise --cd client run format
 mise --cd client run start
 
-mise --cd worker run lint
-mise --cd worker run format
-mise --cd worker run start
+mise --cd orchestrator-worker run lint
+mise --cd orchestrator-worker run format
+mise --cd orchestrator-worker run start
+
+mise --cd activity-worker run lint
+mise --cd activity-worker run format
+mise --cd activity-worker run start
 ```
 
 `mise run lint` runs Ruff, ty, and Ruff formatting checks. Use `mise run format` to apply formatting.

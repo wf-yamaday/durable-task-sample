@@ -1,0 +1,26 @@
+name: "[orchestrator-worker] CI - Lint"
+
+on:
+  pull_request:
+    paths:
+      - "orchestrator-worker/**"
+      - ".github/workflows/ci-orchestrator-worker.yaml"
+  push:
+    paths:
+      - "orchestrator-worker/**"
+      - ".github/workflows/ci-orchestrator-worker.yaml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: jdx/mise-action@v2
+      - name: Install tools
+        run: mise --cd orchestrator-worker install
+      - name: Lint
+        run: mise --cd orchestrator-worker run lint

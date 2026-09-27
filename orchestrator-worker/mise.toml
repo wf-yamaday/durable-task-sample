@@ -1,0 +1,20 @@
+[tools]
+python = "3.14"
+uv = "0.7.20"
+
+[tasks.lint]
+description = "Run Ruff, ty, and formatting checks"
+run = [
+    "uv run ruff check .",
+    "uv run ty check",
+    "uv run ruff format --check .",
+]
+
+[tasks.format]
+description = "Format Python code"
+run = "uv run ruff format ."
+
+[tasks.start]
+description = "Start the orchestrator worker application"
+depends = ["dts-emulator:up"]
+run = "uv run durable-task-orchestrator-worker"

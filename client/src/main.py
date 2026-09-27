@@ -2,13 +2,14 @@
 
 import argparse
 import json
-import os
+import logging
 
 from durabletask.azuremanaged.client import DurableTaskSchedulerClient
 
-TASKHUB = "default"
-EMULATOR_ENDPOINT = "localhost:8080"
+from settings import Settings
+
 DEFAULT_ACTIVITY_COUNT = 10
+logger = logging.getLogger(__name__)
 
 
 def positive_int(value: str) -> int:
@@ -22,7 +23,7 @@ def positive_int(value: str) -> int:
 def parse_args() -> argparse.Namespace:
     """Parse the number of activities to schedule."""
     parser = argparse.ArgumentParser(
-        description="Run the fan_out_average Durable Task orchestration."
+        description="Run the calc_average Durable Task orchestration."
     )
     parser.add_argument(
         "count",
@@ -39,22 +40,27 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> None:
     """Start an orchestration and display its completed result."""
+    logging.basicConfig(level=logging.INFO)
     args = parse_args()
+    settings = Settings()
 
     with DurableTaskSchedulerClient(
-        host_address=os.getenv("DTS_ENDPOINT", EMULATOR_ENDPOINT),
-        taskhub=os.getenv("DTS_TASKHUB", TASKHUB),
+        host_address=settings.DTS_ENDPOINT,
+        taskhub=settings.DTS_TASKHUB,
         token_credential=None,
         secure_channel=False,
     ) as client:
         instance_id = client.schedule_new_orchestration(
-            "fan_out_average", input=args.count
+            "calc_average", input=args.count
         )
-        print(f"Started fan_out_average instance: {instance_id}")
+        logger.info("Started calc_average instance: %s", instance_id)
 
         state = client.wait_for_orchestration_completion(instance_id)
         if state is None:
             raise RuntimeError(f"Orchestration instance {instance_id} was not found")
         state.raise_if_failed()
 
-        print(json.dumps(state.get_output(), ensure_ascii=False))
+        logger.info(
+            "Orchestration result: %s",
+            json.dumps(state.get_output(), ensure_ascii=False),
+        )
