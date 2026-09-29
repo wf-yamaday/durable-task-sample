@@ -10,7 +10,7 @@
 - A user-assigned managed identity for each workload
 - Durable Task RBAC assignments scoped to the task hub
 - Orchestrator and activity worker Container Apps
-- A manually triggered client Container Apps Job
+- An hourly client Container Apps Job (configurable with a UTC cron expression)
 
 Both workers use the `azure-durabletask-scheduler` scaler and can scale to zero. The orchestrator worker reacts to `Orchestration` work items and the activity worker reacts to `Activity` work items.
 
@@ -102,6 +102,16 @@ AZURE_RESOURCE_GROUP=<resource-group> \
 mise run infra:deploy -- \
   workloadName=<workload> \
   environmentName=<environment>
+```
+
+The client Job runs at `0 * * * *` (the start of every hour, UTC) by default. To use another schedule, pass a five-field UTC cron expression, for example:
+
+```sh
+AZURE_RESOURCE_GROUP=<resource-group> \
+mise run infra:deploy -- \
+  workloadName=<workload> \
+  environmentName=<environment> \
+  clientScheduleCronExpression='30 * * * *'
 ```
 
 The deployment principal must be able to create role assignments, such as with the `Owner` or `User Access Administrator` role.
