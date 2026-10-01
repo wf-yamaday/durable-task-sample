@@ -1,7 +1,6 @@
 """Durable Task client for the fan-out/fan-in average sample."""
 
 import argparse
-import json
 import logging
 
 from azure.identity import DefaultAzureCredential
@@ -47,7 +46,7 @@ def parse_args() -> argparse.Namespace:
 
 
 def main() -> None:
-    """Start an orchestration and display its completed result."""
+    """Start an orchestration and exit without waiting for its completion."""
     logging.basicConfig(level=logging.INFO)
     args = parse_args()
     settings = Settings()
@@ -62,13 +61,3 @@ def main() -> None:
             "calc_average", input=args.count
         )
         logger.info("Started calc_average instance: %s", instance_id)
-
-        state = client.wait_for_orchestration_completion(instance_id)
-        if state is None:
-            raise RuntimeError(f"Orchestration instance {instance_id} was not found")
-        state.raise_if_failed()
-
-        logger.info(
-            "Orchestration result: %s",
-            json.dumps(state.get_output(), ensure_ascii=False),
-        )
