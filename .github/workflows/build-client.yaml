@@ -9,17 +9,40 @@ on:
 
 permissions:
   contents: read
+  id-token: write
+
+env:
+  AZURE_RESOURCE_GROUP: rg-durabletask-dev
+  AZURE_CONTAINER_REGISTRY: crdurabletaskdev5iwykh
+  AZURE_CONTAINER_APP_JOB: job-client-durabletask-dev
 
 jobs:
-  build:
+  build-and-deploy:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Sign in to Azure
+        uses: azure/login@v2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      - name: Sign in to Azure Container Registry
+        run: az acr login --name "$AZURE_CONTAINER_REGISTRY"
       - uses: docker/setup-buildx-action@v3
-      - name: Build container image
+      - name: Build and push container image
         uses: docker/build-push-action@v6
         with:
           context: ./client
           file: ./client/.docker/Dockerfile
-          push: false
-          tags: durable-task-client:ci
+          push: true
+          tags: |
+            ${{ env.AZURE_CONTAINER_REGISTRY }}.azurecr.io/durable-task-client:latest
+            ${{ env.AZURE_CONTAINER_REGISTRY }}.azurecr.io/durable-task-client:${{ github.sha }}
+      - name: Update job template
+        run: |
+          az extension add --name containerapp --upgrade --yes
+          az containerapp job update \
+            --resource-group "$AZURE_RESOURCE_GROUP" \
+            --name "$AZURE_CONTAINER_APP_JOB" \
+            --image "$AZURE_CONTAINER_REGISTRY.azurecr.io/durable-task-client:latest"

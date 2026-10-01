@@ -115,3 +115,13 @@ mise run infra:deploy -- \
 ```
 
 The deployment principal must be able to create role assignments, such as with the `Owner` or `User Access Administrator` role.
+
+## Continuous image deployment
+
+Each `build-*.yaml` GitHub Actions workflow runs when its corresponding workload is merged into `main`. It pushes both the commit-SHA tag and `latest` to the dev ACR, then updates the corresponding Container App or Job template. Worker updates create a new revision, while the client Job template is updated so its next scheduled execution uses `latest`.
+
+Configure GitHub Actions OpenID Connect authentication before merging. Create a federated credential for the `main` branch of `wf-yamaday/durable-task-sample`, assign the identity `AcrPush` on `crdurabletaskdev5iwykh` and `Contributor` on `rg-durabletask-dev`, and add these GitHub repository variables:
+
+- `AZURE_CLIENT_ID`
+- `AZURE_TENANT_ID`
+- `AZURE_SUBSCRIPTION_ID`
