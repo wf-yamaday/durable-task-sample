@@ -18,9 +18,6 @@ param orchestratorWorkerImageTag string = 'latest'
 @description('Tag for the activity worker image in the provisioned Azure Container Registry.')
 param activityWorkerImageTag string = 'latest'
 
-@description('UTC cron expression for starting the client Container Apps Job. The default runs at the start of every hour.')
-param clientScheduleCronExpression string = '0 * * * *'
-
 @description('Whether to deploy Container Apps and the client Job. Set false to provision the registry before its images are pushed.')
 param deployApps bool = true
 
@@ -275,7 +272,6 @@ module clientJob 'modules/client-job.bicep' = if (deployApps) {
     jobName: 'job-client-${resourceNameSuffix}'
     location: location
     schedulerEndpoint: durableTaskScheduler.outputs.endpoint
-    scheduleCronExpression: clientScheduleCronExpression
     taskHubName: taskHubName
   }
 }

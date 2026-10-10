@@ -6,7 +6,6 @@ param image string
 param jobName string
 param location string
 param schedulerEndpoint string
-param scheduleCronExpression string
 param taskHubName string
 
 resource job 'Microsoft.App/jobs@2025-01-01' = {
@@ -21,11 +20,10 @@ resource job 'Microsoft.App/jobs@2025-01-01' = {
   properties: {
     environmentId: environmentId
     configuration: {
-      triggerType: 'Schedule'
+      triggerType: 'Manual'
       replicaTimeout: 600
       replicaRetryLimit: 0
-      scheduleTriggerConfig: {
-        cronExpression: scheduleCronExpression
+      manualTriggerConfig: {
         parallelism: 1
         replicaCompletionCount: 1
       }

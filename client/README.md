@@ -8,6 +8,8 @@ Durable Task orchestration の開始、状態照会、外部イベント送信�
 
 ## Commands
 
+Azure の Container Apps Job は手動トリガーです。`az containerapp job start` で起動し、自動の定期実行は行いません。既存 Job の切り替えには Bicep の再デプロイが必要です。
+
 ```sh
 mise run lint
 mise run format

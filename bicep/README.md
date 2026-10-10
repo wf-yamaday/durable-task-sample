@@ -10,7 +10,7 @@
 - A user-assigned managed identity for each workload
 - Durable Task RBAC assignments scoped to the task hub
 - Orchestrator and activity worker Container Apps
-- An hourly client Container Apps Job (configurable with a UTC cron expression)
+- A manually triggered client Container Apps Job (no automatic schedule)
 - Azure OpenAI with a `gpt-5.6-luna` deployment
 - Blob Storage with private `input` and `results` containers
 - Activity identity: Cognitive Services OpenAI User, input Blob Data Reader, results Blob Data Contributor
@@ -107,21 +107,21 @@ mise run infra:deploy -- \
   environmentName=<environment>
 ```
 
-The client Job runs at `0 * * * *` (the start of every hour, UTC) by default. To use another schedule, pass a five-field UTC cron expression, for example:
+The client Job uses a `Manual` trigger to avoid unintended repeated model charges. Start it explicitly after uploading the input CSV:
 
 ```sh
-AZURE_RESOURCE_GROUP=<resource-group> \
-mise run infra:deploy -- \
-  workloadName=<workload> \
-  environmentName=<environment> \
-  clientScheduleCronExpression='30 * * * *'
+az containerapp job start \
+  --resource-group <resource-group> \
+  --name <client-job-name>
 ```
+
+Existing scheduled Jobs remain scheduled until this template is redeployed. Changing the trigger does not stop an already-started orchestration. The previous `clientScheduleCronExpression` parameter has been removed.
 
 The deployment principal must be able to create role assignments, such as with the `Owner` or `User Access Administrator` role.
 
 ## Continuous image deployment
 
-Each `build-*.yaml` GitHub Actions workflow runs when its corresponding workload is merged into `main`. It pushes both the commit-SHA tag and `latest` to the dev ACR, then updates the corresponding Container App or Job template. Worker updates create a new revision, while the client Job template is updated so its next scheduled execution uses `latest`.
+Each `build-*.yaml` GitHub Actions workflow runs when its corresponding workload is merged into `main`. It pushes both the commit-SHA tag and `latest` to the dev ACR, then updates the corresponding Container App or Job template. Worker updates create a new revision, while the client Job template is updated so its next manual execution uses `latest`. Image deployment alone does not change an existing Job's trigger; redeploy Bicep to apply the Manual trigger.
 
 Configure GitHub Actions OpenID Connect authentication before merging. Create a federated credential for the `main` branch of `wf-yamaday/durable-task-sample`, assign the identity `AcrPush` on `crdurabletaskdev5iwykh` and `Contributor` on `rg-durabletask-dev`, and add these GitHub repository variables:
 
@@ -155,7 +155,7 @@ OpenAI and Storage use authenticated public endpoints for this PoC; anonymous Bl
      --overwrite
    ```
 
-5. Push the images, then deploy the apps. The hourly Job processes up to the first 100 rows with parallelism 5 each time. Repeated executions incur model usage charges; stop or adjust the schedule when not testing. A manual run is available with `az containerapp job start --resource-group <resource-group> --name <client-job-name>`.
+5. Push the images, then deploy the apps. The Job does not run automatically. Each manual start processes up to the first 100 rows with parallelism 5 and incurs model usage charges. Start it with `az containerapp job start --resource-group <resource-group> --name <client-job-name>`.
 
 Download a completed report:
 
