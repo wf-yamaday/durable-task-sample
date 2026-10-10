@@ -8,7 +8,7 @@ from typing import Any
 from azure.identity import DefaultAzureCredential, get_bearer_token_provider
 from azure.storage.blob import BlobServiceClient, ContentSettings
 from durabletask import task
-from openai import AzureOpenAI, OpenAIError
+from openai import OpenAI, OpenAIError
 from pydantic import BaseModel, Field, ValidationError
 
 from settings import Settings
@@ -65,16 +65,17 @@ class ReviewActivities:
         self.blobs = BlobServiceClient(
             settings.AZURE_STORAGE_ACCOUNT_URL, credential=credential
         )
-        self.llm = AzureOpenAI(
-            azure_endpoint=settings.AZURE_OPENAI_ENDPOINT,
-            api_version=settings.AZURE_OPENAI_API_VERSION,
-            azure_ad_token_provider=get_bearer_token_provider(
-                credential, "https://cognitiveservices.azure.com/.default"
+        self.llm = OpenAI(
+            base_url=f"{settings.AZURE_OPENAI_ENDPOINT.rstrip('/')}/openai/v1/",
+            api_key=get_bearer_token_provider(
+                credential, "https://ai.azure.com/.default"
             ),
             timeout=settings.AZURE_OPENAI_TIMEOUT_SECONDS,
             max_retries=2,
         )
         self.deployment = settings.AZURE_OPENAI_DEPLOYMENT
+        self.reasoning_effort = settings.AZURE_OPENAI_REASONING_EFFORT
+        self.max_completion_tokens = settings.AZURE_OPENAI_MAX_COMPLETION_TOKENS
 
     def close(self) -> None:
         self.llm.close()
@@ -111,7 +112,8 @@ class ReviewActivities:
                     {"role": "user", "content": review["text"]},
                 ],
                 response_format=ReviewAnalysis,
-                max_completion_tokens=500,
+                reasoning_effort=self.reasoning_effort,
+                max_completion_tokens=self.max_completion_tokens,
             )
             analysis = completion.choices[0].message.parsed
             if analysis is None:

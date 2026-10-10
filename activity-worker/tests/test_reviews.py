@@ -4,12 +4,13 @@ import io
 import json
 import unittest
 from types import SimpleNamespace
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 from openai import OpenAIError
 from pydantic import ValidationError
 
 from reviews import ReviewActivities, ReviewAnalysis, csv_lines, parse_reviews
+from settings import Settings
 
 
 class ReviewTests(unittest.TestCase):
@@ -43,7 +44,29 @@ class ReviewTests(unittest.TestCase):
         activities.llm = MagicMock()
         activities.blobs = MagicMock()
         activities.deployment = "test"
+        activities.reasoning_effort = "none"
+        activities.max_completion_tokens = 1024
         return activities
+
+    def test_v1_client_and_default_model(self):
+        settings = Settings(
+            AZURE_OPENAI_ENDPOINT="https://example.openai.azure.com/",
+            AZURE_STORAGE_ACCOUNT_URL="https://example.blob.core.windows.net/",
+        )
+        credential = MagicMock()
+        with (
+            patch("reviews.OpenAI") as client,
+            patch("reviews.BlobServiceClient"),
+            patch("reviews.get_bearer_token_provider") as provider,
+        ):
+            activities = ReviewActivities(settings, credential)
+        self.assertEqual(activities.deployment, "gpt-5.6-luna")
+        self.assertEqual(
+            client.call_args.kwargs["base_url"],
+            "https://example.openai.azure.com/openai/v1/",
+        )
+        self.assertIs(client.call_args.kwargs["api_key"], provider.return_value)
+        provider.assert_called_once_with(credential, "https://ai.azure.com/.default")
 
     def test_only_text_is_sent_to_model(self):
         activities = self.activities()
@@ -65,6 +88,9 @@ class ReviewTests(unittest.TestCase):
         self.assertEqual(messages[1], {"role": "user", "content": "Tasty"})
         self.assertEqual(result["predicted_score"], 4)
         self.assertEqual(result["status"], "succeeded")
+        options = activities.llm.chat.completions.parse.call_args.kwargs
+        self.assertEqual(options["reasoning_effort"], "none")
+        self.assertEqual(options["max_completion_tokens"], 1024)
 
     def test_api_failure_does_not_expose_error_body(self):
         activities = self.activities()

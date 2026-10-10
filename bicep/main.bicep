@@ -26,8 +26,8 @@ param deployApps bool = true
 
 @description('Azure OpenAI region; select a region with model availability and quota.')
 param openAiLocation string = location
-param openAiModelName string = 'gpt-4.1-mini'
-param openAiModelVersion string = '2025-04-14'
+param openAiModelName string = 'gpt-5.6-luna'
+param openAiModelVersion string = '2026-07-09'
 param openAiDeploymentSku string = 'GlobalStandard'
 @minValue(1)
 param openAiDeploymentCapacity int = 10

@@ -9,8 +9,9 @@ Durable Task のアクティビティ関数を実行するワーカーアプリ�
 | Environment variable | Value |
 | --- | --- |
 | `AZURE_OPENAI_ENDPOINT` | 必須。例: `https://<account>.openai.azure.com/` |
-| `AZURE_OPENAI_DEPLOYMENT` | `gpt-4.1-mini`（デプロイ名） |
-| `AZURE_OPENAI_API_VERSION` | `2024-10-21` |
+| `AZURE_OPENAI_DEPLOYMENT` | `gpt-5.6-luna`（デプロイ名） |
+| `AZURE_OPENAI_REASONING_EFFORT` | `none`（`low`・`medium`・`high` に変更可） |
+| `AZURE_OPENAI_MAX_COMPLETION_TOKENS` | `1024`（推論トークンを含む生成上限） |
 | `AZURE_OPENAI_TIMEOUT_SECONDS` | `60`（HTTPリクエストごと） |
 | `AZURE_STORAGE_ACCOUNT_URL` | 必須。`https://<account>.blob.core.windows.net/` |
 | `AZURE_CLIENT_ID` | Azure 上のユーザー割り当て Managed Identity の client ID。ローカルでは未設定 |
@@ -20,6 +21,8 @@ Azure OpenAI と Blob は常に `DefaultAzureCredential` 認証です。Azure �
 LLM の429・一時的障害は OpenAI SDK で最大2回リトライし、それでも失敗した行は失敗結果として保存します。API エラー本文は結果に保存しません。Activity は少なくとも1回実行されるため、障害復旧時に LLM の重複呼び出し・追加課金が発生する可能性があります。結果保存は instance ID ごとの同一 Blob を上書きするため再実行可能です。
 
 ## Commands
+
+Azure OpenAI v1 Chat Completions API（`/openai/v1/`）を使うため、日付付き `api-version` は不要です。レビュー分析では速度・コストを優先して `reasoning_effort=none` を既定にしています。推論を有効にする場合は生成上限も増やし、精度・レイテンシ・料金を比較してください。
 
 ```sh
 mise run lint

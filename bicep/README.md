@@ -11,7 +11,7 @@
 - Durable Task RBAC assignments scoped to the task hub
 - Orchestrator and activity worker Container Apps
 - An hourly client Container Apps Job (configurable with a UTC cron expression)
-- Azure OpenAI with a `gpt-4.1-mini` deployment
+- Azure OpenAI with a `gpt-5.6-luna` deployment
 - Blob Storage with private `input` and `results` containers
 - Activity identity: Cognitive Services OpenAI User, input Blob Data Reader, results Blob Data Contributor
 
@@ -131,7 +131,7 @@ Configure GitHub Actions OpenID Connect authentication before merging. Create a 
 
 ## Review data and model
 
-The default model is `gpt-4.1-mini`, version `2025-04-14`, `GlobalStandard`, capacity `10`. Availability and quota depend on your subscription and region; Bicep compilation does not validate these. Override `openAiLocation`, `openAiModelName`, `openAiModelVersion`, `openAiDeploymentSku`, or `openAiDeploymentCapacity` as needed. The model must support structured outputs and Chat Completions. GlobalStandard processing is not guaranteed to stay in Japan.
+The default model is `gpt-5.6-luna`, version `2026-07-09` from the [official model catalog](https://ai.azure.com/catalog/models/gpt-5.6-luna), `GlobalStandard`, capacity `10`. Availability and quota depend on your subscription and region; Bicep compilation does not validate these. Override `openAiLocation`, `openAiModelName`, `openAiModelVersion`, `openAiDeploymentSku`, or `openAiDeploymentCapacity` as needed. The model must support structured outputs and v1 Chat Completions. GlobalStandard processing is not guaranteed to stay in Japan.
 
 OpenAI and Storage use authenticated public endpoints for this PoC; anonymous Blob access and shared-key/local-key authentication are disabled. Unlike DTS, these resources do **not** have private endpoints. Add Private Link/firewall controls before using sensitive data. Review text and analysis also appear in DTS history.
 
