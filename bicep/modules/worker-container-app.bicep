@@ -15,6 +15,7 @@ param maxConcurrentWorkItemsCount int
 param maxReplicas int
 param schedulerEndpoint string
 param taskHubName string
+param additionalEnv array = []
 
 resource app 'Microsoft.App/containerApps@2025-02-02-preview' = {
   name: appName
@@ -41,7 +42,7 @@ resource app 'Microsoft.App/containerApps@2025-02-02-preview' = {
         {
           name: 'worker'
           image: image
-          env: [
+          env: concat([
             {
               name: 'DTS_ENDPOINT'
               value: schedulerEndpoint
@@ -62,7 +63,7 @@ resource app 'Microsoft.App/containerApps@2025-02-02-preview' = {
               name: 'AZURE_CLIENT_ID'
               value: identityClientId
             }
-          ]
+          ], additionalEnv)
           resources: {
             cpu: json('0.25')
             memory: '0.5Gi'

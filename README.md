@@ -14,6 +14,29 @@ Durable Task SDK で client、orchestrator worker、activity worker を分離し
 
 Azure Container Apps、Durable Task Scheduler、Managed Identity などのリソース定義は [`bicep`](./bicep) にあります。
 
+## Amazon review analysis
+
+[Amazon Fine Food Reviews](https://www.kaggle.com/datasets/snap/amazon-fine-food-reviews) の `Reviews.csv` を Blob に配置し、各行の `Text` を Azure OpenAI で分析します。出力は推定評価（1〜5）、日本語の短い要約、採点理由です。元の `Score` はモデルには渡さず、評価用に保持します。
+
+```text
+Client → analyze_reviews
+           ├─ load_reviews（Blob の CSV を読む）
+           ├─ analyze_review × N（並列バッチで LLM 呼び出し）
+           └─ save_results（JSON を Blob に保存）
+```
+
+初期値は100行・並列5件、処理上限は1,000行です。結果は `results/<instance-id>/results.json` に保存され、成功・失敗件数、成功分の平均推定評価、元の評価との MAE を含みます。入力エラーや Blob 障害はワークフロー失敗、LLM の API エラーや拒否は行単位の失敗として記録します。
+
+データ準備・デプロイは [`bicep/README.md`](./bicep/README.md#review-data-and-model)、ローカル起動の設定は [`activity-worker/README.md`](./activity-worker/README.md) を参照してください。データセット自体はリポジトリに含めません。
+
+### Tests
+
+```sh
+mise run test
+```
+
+CSV の引用符・改行・UTF-8 チャンク、モデル入力、行単位の失敗、結果保存、並列バッチと MAE を外部サービスなしで検証します。
+
 ## Setup
 
 ```sh

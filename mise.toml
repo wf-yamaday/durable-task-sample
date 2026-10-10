@@ -17,6 +17,13 @@ run = [
     "mise --cd activity-worker run format",
 ]
 
+[tasks.test]
+description = "Run offline activity and orchestration unit tests"
+run = [
+    "mise --cd activity-worker exec -- uv run python -m unittest discover -s tests -v",
+    "mise --cd orchestrator-worker exec -- uv run python -m unittest discover -s tests -v",
+]
+
 [tasks."dts-emulator:up"]
 description = "Ensure the Durable Task Scheduler emulator is running"
 run = """
@@ -50,10 +57,12 @@ for provider in \
   Microsoft.App \
   Microsoft.Authorization \
   Microsoft.ContainerRegistry \
+  Microsoft.CognitiveServices \
   Microsoft.DurableTask \
   Microsoft.ManagedIdentity \
   Microsoft.Network \
-  Microsoft.OperationalInsights; do
+  Microsoft.OperationalInsights \
+  Microsoft.Storage; do
   az provider register --namespace "$provider" --wait
 done
 """

@@ -1,4 +1,4 @@
-"""Durable Task client for the fan-out/fan-in average sample."""
+"""Durable Task client for Amazon review analysis."""
 
 import argparse
 import logging
@@ -8,7 +8,7 @@ from durabletask.azuremanaged.client import DurableTaskSchedulerClient
 
 from settings import Settings
 
-DEFAULT_ACTIVITY_COUNT = 10
+DEFAULT_ACTIVITY_COUNT = 100
 logger = logging.getLogger(__name__)
 
 
@@ -22,26 +22,26 @@ def get_token_credential(settings: Settings) -> DefaultAzureCredential | None:
 def positive_int(value: str) -> int:
     """Parse a positive integer CLI argument."""
     count = int(value)
-    if count < 1:
-        raise argparse.ArgumentTypeError("count must be at least 1")
+    if not 1 <= count <= 1000:
+        raise argparse.ArgumentTypeError("value must be between 1 and 1000")
     return count
 
 
 def parse_args() -> argparse.Namespace:
     """Parse the number of activities to schedule."""
     parser = argparse.ArgumentParser(
-        description="Run the calc_average Durable Task orchestration."
+        description="Analyze Amazon food reviews from Blob Storage."
     )
     parser.add_argument(
         "count",
         nargs="?",
         default=DEFAULT_ACTIVITY_COUNT,
         type=positive_int,
-        help=(
-            "number of random-number activities to run "
-            f"(default: {DEFAULT_ACTIVITY_COUNT})"
-        ),
+        help=(f"maximum CSV rows to analyze (default: {DEFAULT_ACTIVITY_COUNT})"),
     )
+    parser.add_argument("--container", help="input Blob container")
+    parser.add_argument("--blob", help="input CSV Blob name")
+    parser.add_argument("--parallelism", type=positive_int, default=5)
     return parser.parse_args()
 
 
@@ -58,6 +58,12 @@ def main() -> None:
         secure_channel=settings.DTS_SECURE_CHANNEL,
     ) as client:
         instance_id = client.schedule_new_orchestration(
-            "calc_average", input=args.count
+            "analyze_reviews",
+            input={
+                "container": args.container or settings.INPUT_CONTAINER,
+                "blob": args.blob or settings.INPUT_BLOB,
+                "limit": args.count,
+                "parallelism": args.parallelism,
+            },
         )
-        logger.info("Started calc_average instance: %s", instance_id)
+        logger.info("Started analyze_reviews instance: %s", instance_id)

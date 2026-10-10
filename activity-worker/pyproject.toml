@@ -5,7 +5,9 @@ description = "Worker application for Durable Task activities"
 requires-python = ">=3.14"
 dependencies = [
     "azure-identity>=1.25.3",
+    "azure-storage-blob>=12",
     "durabletask-azuremanaged",
+    "openai>=2",
     "pydantic-settings>=2.15.0",
 ]
 
@@ -24,7 +26,7 @@ build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
 package-dir = { "" = "src" }
-py-modules = ["main", "settings"]
+py-modules = ["main", "settings", "reviews"]
 
 [tool.ruff]
 target-version = "py314"

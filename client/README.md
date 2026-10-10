@@ -2,7 +2,9 @@
 
 Durable Task orchestration の開始、状態照会、外部イベント送信を担当するクライアントアプリケーションです。
 
-`calc_average` オーケストレーターを開始し、instance IDをログに出力したら終了します。完了待ちはしないため、実行時間に依存せず定期Jobから起動できます。ワークフローの結果や失敗状態はDTS側で確認してください。引数には並列実行する Activity 数を指定でき、省略時は `10` 件です。
+`analyze_reviews` を開始し、instance ID をログに出力したら終了します。完了待ちはしません。状態は DTS、結果は `results/<instance-id>/results.json` で確認できます。
+
+位置引数は読み込む最大行数（既定100、上限1,000）。`--parallelism` は並列バッチ件数（既定5）。`--container`・`--blob` は入力 Blob を指定します。既定は環境変数 `INPUT_CONTAINER=input`・`INPUT_BLOB=Reviews.csv` です。クライアント自体は Blob や OpenAI にはアクセスしません。
 
 ## Commands
 
@@ -10,7 +12,7 @@ Durable Task orchestration の開始、状態照会、外部イベント送信�
 mise run lint
 mise run format
 mise run start
-mise run start -- 20
+mise run start -- 100 --parallelism 5 --container input --blob Reviews.csv
 docker build -f .docker/Dockerfile -t durable-task-client .
 ```
 
