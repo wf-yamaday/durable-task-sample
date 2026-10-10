@@ -1,8 +1,9 @@
-"""Durable Task worker for the fan-out/fan-in average sample."""
+"""Durable Task worker for Amazon review analysis."""
 
 import logging
 import signal
 from collections.abc import Generator
+from datetime import timedelta
 from threading import Event
 from typing import Any
 
@@ -13,7 +14,6 @@ from durabletask.azuremanaged.worker import DurableTaskSchedulerWorker
 from settings import Settings
 
 logger = logging.getLogger(__name__)
-RANDOM_NUMBER_ACTIVITY = "generate_random_number"
 
 
 def get_token_credential(settings: Settings) -> DefaultAzureCredential | None:
@@ -23,17 +23,59 @@ def get_token_credential(settings: Settings) -> DefaultAzureCredential | None:
     return DefaultAzureCredential(managed_identity_client_id=settings.AZURE_CLIENT_ID)
 
 
-def calc_average(
-    context: task.OrchestrationContext, count: int
+def analyze_reviews(
+    context: task.OrchestrationContext, request: dict[str, Any]
 ) -> Generator[task.Task[Any], Any, dict[str, Any]]:
-    """Run random-number activities in parallel and return their average."""
-    if count < 1:
-        raise ValueError("count must be at least 1")
-
-    numbers = yield task.when_all(
-        [context.call_activity(RANDOM_NUMBER_ACTIVITY) for _ in range(count)]
+    """Analyze bounded batches, then persist results outside orchestration history."""
+    limit = request["limit"]
+    parallelism = request["parallelism"]
+    if not isinstance(limit, int) or not 1 <= limit <= 1000:
+        raise ValueError("limit must be between 1 and 1000")
+    if not isinstance(parallelism, int) or not 1 <= parallelism <= 1000:
+        raise ValueError("parallelism must be between 1 and 1000")
+    retry_policy = task.RetryPolicy(
+        first_retry_interval=timedelta(seconds=5),
+        max_number_of_attempts=3,
+        backoff_coefficient=2,
     )
-    return {"values": numbers, "average": sum(numbers) / len(numbers)}
+    reviews = yield context.call_activity(
+        "load_reviews", input=request, retry_policy=retry_policy
+    )
+    results = []
+    for start in range(0, len(reviews), parallelism):
+        batch = yield task.when_all(
+            [
+                context.call_activity("analyze_review", input=review)
+                for review in reviews[start : start + parallelism]
+            ]
+        )
+        results.extend(batch)
+    succeeded = [r for r in results if r["status"] == "succeeded"]
+    metrics = {
+        "total": len(results),
+        "succeeded": len(succeeded),
+        "failed": len(results) - len(succeeded),
+        "average_score": (
+            sum(r["predicted_score"] for r in succeeded) / len(succeeded)
+            if succeeded
+            else None
+        ),
+        "mae": (
+            sum(abs(r["predicted_score"] - r["actual_score"]) for r in succeeded)
+            / len(succeeded)
+            if succeeded
+            else None
+        ),
+    }
+    output = yield context.call_activity(
+        "save_results",
+        retry_policy=retry_policy,
+        input={
+            "instance_id": context.instance_id,
+            "report": {"metrics": metrics, "results": results},
+        },
+    )
+    return output
 
 
 def main() -> None:
@@ -61,7 +103,7 @@ def main() -> None:
             token_credential=get_token_credential(settings),
             secure_channel=settings.DTS_SECURE_CHANNEL,
         ) as worker:
-            worker.add_orchestrator(calc_average)
+            worker.add_orchestrator(analyze_reviews)
             worker.use_work_item_filters()
             logger.info("Starting Durable Task orchestrator worker")
             worker.start()

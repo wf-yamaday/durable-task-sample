@@ -11,3 +11,5 @@ class Settings(BaseSettings):
     DTS_SECURE_CHANNEL: bool = False
     DTS_USE_MANAGED_IDENTITY: bool = False
     AZURE_CLIENT_ID: str | None = None
+    INPUT_CONTAINER: str = "input"
+    INPUT_BLOB: str = "Reviews.csv"

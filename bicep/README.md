@@ -10,7 +10,10 @@
 - A user-assigned managed identity for each workload
 - Durable Task RBAC assignments scoped to the task hub
 - Orchestrator and activity worker Container Apps
-- An hourly client Container Apps Job (configurable with a UTC cron expression)
+- A manually triggered client Container Apps Job (no automatic schedule)
+- Azure OpenAI with a `gpt-5.6-luna` deployment
+- Blob Storage with private `input` and `results` containers
+- Activity identity: Cognitive Services OpenAI User, input Blob Data Reader, results Blob Data Contributor
 
 Both workers use the `azure-durabletask-scheduler` scaler and can scale to zero. The orchestrator worker reacts to `Orchestration` work items and the activity worker reacts to `Activity` work items.
 
@@ -104,24 +107,63 @@ mise run infra:deploy -- \
   environmentName=<environment>
 ```
 
-The client Job runs at `0 * * * *` (the start of every hour, UTC) by default. To use another schedule, pass a five-field UTC cron expression, for example:
+The client Job uses a `Manual` trigger to avoid unintended repeated model charges. Start it explicitly after uploading the input CSV:
 
 ```sh
-AZURE_RESOURCE_GROUP=<resource-group> \
-mise run infra:deploy -- \
-  workloadName=<workload> \
-  environmentName=<environment> \
-  clientScheduleCronExpression='30 * * * *'
+az containerapp job start \
+  --resource-group <resource-group> \
+  --name <client-job-name>
 ```
+
+Existing scheduled Jobs remain scheduled until this template is redeployed. Changing the trigger does not stop an already-started orchestration. The previous `clientScheduleCronExpression` parameter has been removed.
 
 The deployment principal must be able to create role assignments, such as with the `Owner` or `User Access Administrator` role.
 
 ## Continuous image deployment
 
-Each `build-*.yaml` GitHub Actions workflow runs when its corresponding workload is merged into `main`. It pushes both the commit-SHA tag and `latest` to the dev ACR, then updates the corresponding Container App or Job template. Worker updates create a new revision, while the client Job template is updated so its next scheduled execution uses `latest`.
+Each `build-*.yaml` GitHub Actions workflow runs when its corresponding workload is merged into `main`. It pushes both the commit-SHA tag and `latest` to the dev ACR, then updates the corresponding Container App or Job template. Worker updates create a new revision, while the client Job template is updated so its next manual execution uses `latest`. Image deployment alone does not change an existing Job's trigger; redeploy Bicep to apply the Manual trigger.
 
 Configure GitHub Actions OpenID Connect authentication before merging. Create a federated credential for the `main` branch of `wf-yamaday/durable-task-sample`, assign the identity `AcrPush` on `crdurabletaskdev5iwykh` and `Contributor` on `rg-durabletask-dev`, and add these GitHub repository variables:
 
 - `AZURE_CLIENT_ID`
 - `AZURE_TENANT_ID`
 - `AZURE_SUBSCRIPTION_ID`
+
+## Review data and model
+
+The default model is `gpt-5.6-luna`, version `2026-07-09` from the [official model catalog](https://ai.azure.com/catalog/models/gpt-5.6-luna), `GlobalStandard`, capacity `10`. Availability and quota depend on your subscription and region; Bicep compilation does not validate these. Override `openAiLocation`, `openAiModelName`, `openAiModelVersion`, `openAiDeploymentSku`, or `openAiDeploymentCapacity` as needed. The model must support structured outputs and v1 Chat Completions. GlobalStandard processing is not guaranteed to stay in Japan.
+
+OpenAI and Storage use authenticated public endpoints for this PoC; anonymous Blob access and shared-key/local-key authentication are disabled. Unlike DTS, these resources do **not** have private endpoints. Add Private Link/firewall controls before using sensitive data. Review text and analysis also appear in DTS history.
+
+1. Provision with `deployApps=false` as above. This creates the model, storage, and `input`/`results` containers too.
+2. Download [Amazon Fine Food Reviews](https://www.kaggle.com/datasets/snap/amazon-fine-food-reviews) and extract `Reviews.csv`. Check its license before use. Optionally use Kaggle CLI:
+
+   ```sh
+   kaggle datasets download -d snap/amazon-fine-food-reviews --unzip -p ./data
+   ```
+
+3. Assign the uploading user `Storage Blob Data Contributor` on the storage account (management-plane Contributor alone is insufficient). The local activity worker user additionally needs `Cognitive Services OpenAI User` on the OpenAI account. Allow time for role propagation.
+4. Upload using the `storageAccountName` deployment output:
+
+   ```sh
+   az storage blob upload \
+     --auth-mode login \
+     --account-name <storage-account-name> \
+     --container-name input \
+     --name Reviews.csv \
+     --file ./data/Reviews.csv \
+     --overwrite
+   ```
+
+5. Push the images, then deploy the apps. The Job does not run automatically. Each manual start processes up to the first 100 rows with parallelism 5 and incurs model usage charges. Start it with `az containerapp job start --resource-group <resource-group> --name <client-job-name>`.
+
+Download a completed report:
+
+```sh
+az storage blob download \
+  --auth-mode login \
+  --account-name <storage-account-name> \
+  --container-name results \
+  --name <instance-id>/results.json \
+  --file ./results.json
+```

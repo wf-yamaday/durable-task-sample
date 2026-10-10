@@ -18,11 +18,16 @@ param orchestratorWorkerImageTag string = 'latest'
 @description('Tag for the activity worker image in the provisioned Azure Container Registry.')
 param activityWorkerImageTag string = 'latest'
 
-@description('UTC cron expression for starting the client Container Apps Job. The default runs at the start of every hour.')
-param clientScheduleCronExpression string = '0 * * * *'
-
 @description('Whether to deploy Container Apps and the client Job. Set false to provision the registry before its images are pushed.')
 param deployApps bool = true
+
+@description('Azure OpenAI region; select a region with model availability and quota.')
+param openAiLocation string = location
+param openAiModelName string = 'gpt-5.6-luna'
+param openAiModelVersion string = '2026-07-09'
+param openAiDeploymentSku string = 'GlobalStandard'
+@minValue(1)
+param openAiDeploymentCapacity int = 10
 
 @description('CIDR ranges allowed to access Durable Task Scheduler over its public endpoint. Use /32 for an individual IPv4 address.')
 param schedulerIpAllowlist array = []
@@ -131,6 +136,21 @@ module activityIdentity 'modules/managed-identity.bicep' = {
   }
 }
 
+module reviewServices 'modules/review-services.bicep' = {
+  name: 'review-services'
+  params: {
+    location: location
+    openAiLocation: openAiLocation
+    openAiName: 'aoai-${resourceNameSuffix}-${substring(uniqueString(resourceGroup().id), 0, 6)}'
+    storageName: 'st${workloadName}${environmentName}${substring(uniqueString(resourceGroup().id), 0, 6)}'
+    activityPrincipalId: activityIdentity.outputs.principalId
+    modelName: openAiModelName
+    modelVersion: openAiModelVersion
+    deploymentSku: openAiDeploymentSku
+    deploymentCapacity: openAiDeploymentCapacity
+  }
+}
+
 module durableTaskScheduler 'modules/durable-task-scheduler.bicep' = {
   name: 'durable-task-scheduler'
   params: {
@@ -229,6 +249,11 @@ module activityWorker 'modules/worker-container-app.bicep' = if (deployApps) {
     schedulerEndpoint: durableTaskScheduler.outputs.endpoint
     taskHubName: taskHubName
     workItemType: 'Activity'
+    additionalEnv: [
+      { name: 'AZURE_OPENAI_ENDPOINT', value: reviewServices.outputs.openAiEndpoint }
+      { name: 'AZURE_OPENAI_DEPLOYMENT', value: reviewServices.outputs.deploymentName }
+      { name: 'AZURE_STORAGE_ACCOUNT_URL', value: reviewServices.outputs.storageAccountUrl }
+    ]
   }
 }
 
@@ -247,7 +272,6 @@ module clientJob 'modules/client-job.bicep' = if (deployApps) {
     jobName: 'job-client-${resourceNameSuffix}'
     location: location
     schedulerEndpoint: durableTaskScheduler.outputs.endpoint
-    scheduleCronExpression: clientScheduleCronExpression
     taskHubName: taskHubName
   }
 }
@@ -265,3 +289,6 @@ output containerRegistryLoginServer string = containerRegistry.outputs.loginServ
 output clientJobName string = 'job-client-${resourceNameSuffix}'
 output dashboardId string = dashboard.outputs.id
 output schedulerEndpoint string = durableTaskScheduler.outputs.endpoint
+output openAiEndpoint string = reviewServices.outputs.openAiEndpoint
+output storageAccountName string = reviewServices.outputs.storageAccountName
+output storageAccountUrl string = reviewServices.outputs.storageAccountUrl
