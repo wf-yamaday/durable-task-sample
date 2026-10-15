@@ -21,13 +21,27 @@ param activityWorkerImageTag string = 'latest'
 @description('Whether to deploy Container Apps and the client Job. Set false to provision the registry before its images are pushed.')
 param deployApps bool = true
 
-@description('Azure OpenAI region; select a region with model availability and quota.')
+@description('Microsoft Foundry region; select a region with model availability and quota.')
 param openAiLocation string = location
 param openAiModelName string = 'gpt-5.6-luna'
 param openAiModelVersion string = '2026-07-09'
 param openAiDeploymentSku string = 'GlobalStandard'
 @minValue(1)
 param openAiDeploymentCapacity int = 10
+
+@allowed([
+  'none'
+  'low'
+  'medium'
+  'high'
+])
+param openAiReasoningEffort string = 'none'
+
+@minValue(1)
+param openAiMaxCompletionTokens int = 1024
+
+@description('Deploy the model when quota is available. Set false to provision the Foundry account, Blob Storage, and permissions first.')
+param deployOpenAiModel bool = true
 
 @description('CIDR ranges allowed to access Durable Task Scheduler over its public endpoint. Use /32 for an individual IPv4 address.')
 param schedulerIpAllowlist array = []
@@ -148,6 +162,37 @@ module reviewServices 'modules/review-services.bicep' = {
     modelVersion: openAiModelVersion
     deploymentSku: openAiDeploymentSku
     deploymentCapacity: openAiDeploymentCapacity
+    deployModel: deployOpenAiModel
+  }
+}
+
+module foundryPrivateEndpoint 'modules/service-private-endpoint.bicep' = {
+  name: 'foundry-private-endpoint'
+  params: {
+    location: location
+    name: 'pep-foundry-${resourceNameSuffix}'
+    privateEndpointSubnetId: network.outputs.privateEndpointSubnetId
+    targetResourceId: reviewServices.outputs.foundryId
+    groupId: 'account'
+    virtualNetworkId: network.outputs.id
+    privateDnsZoneNames: [
+      'privatelink.cognitiveservices.azure.com'
+      'privatelink.openai.azure.com'
+      'privatelink.services.ai.azure.com'
+    ]
+  }
+}
+
+module blobPrivateEndpoint 'modules/service-private-endpoint.bicep' = {
+  name: 'blob-private-endpoint'
+  params: {
+    location: location
+    name: 'pep-blob-${resourceNameSuffix}'
+    privateEndpointSubnetId: network.outputs.privateEndpointSubnetId
+    targetResourceId: reviewServices.outputs.storageAccountId
+    groupId: 'blob'
+    virtualNetworkId: network.outputs.id
+    privateDnsZoneNames: ['privatelink.blob.${environment().suffixes.storage}']
   }
 }
 
@@ -236,6 +281,8 @@ module activityWorker 'modules/worker-container-app.bicep' = if (deployApps) {
   dependsOn: [
     activityAcrPull
     schedulerPrivateEndpoint
+    foundryPrivateEndpoint
+    blobPrivateEndpoint
   ]
   params: {
     acrLoginServer: containerRegistry.outputs.loginServer
@@ -252,6 +299,8 @@ module activityWorker 'modules/worker-container-app.bicep' = if (deployApps) {
     additionalEnv: [
       { name: 'AZURE_OPENAI_ENDPOINT', value: reviewServices.outputs.openAiEndpoint }
       { name: 'AZURE_OPENAI_DEPLOYMENT', value: reviewServices.outputs.deploymentName }
+      { name: 'AZURE_OPENAI_REASONING_EFFORT', value: openAiReasoningEffort }
+      { name: 'AZURE_OPENAI_MAX_COMPLETION_TOKENS', value: string(openAiMaxCompletionTokens) }
       { name: 'AZURE_STORAGE_ACCOUNT_URL', value: reviewServices.outputs.storageAccountUrl }
     ]
   }
