@@ -7,20 +7,25 @@ param modelName string
 param modelVersion string
 param deploymentSku string
 param deploymentCapacity int
+param deployModel bool = true
 
 resource openAi 'Microsoft.CognitiveServices/accounts@2025-06-01' = {
   name: openAiName
   location: openAiLocation
-  kind: 'OpenAI'
+  kind: 'AIServices'
+  identity: {
+    type: 'SystemAssigned'
+  }
   sku: { name: 'S0' }
   properties: {
+    allowProjectManagement: true
     customSubDomainName: openAiName
     disableLocalAuth: true
-    publicNetworkAccess: 'Enabled'
+    publicNetworkAccess: 'Disabled'
   }
 }
 
-resource deployment 'Microsoft.CognitiveServices/accounts/deployments@2025-06-01' = {
+resource deployment 'Microsoft.CognitiveServices/accounts/deployments@2025-06-01' = if (deployModel) {
   parent: openAi
   name: modelName
   sku: {
@@ -57,7 +62,7 @@ resource storage 'Microsoft.Storage/storageAccounts@2025-01-01' = {
     allowSharedKeyAccess: false
     minimumTlsVersion: 'TLS1_2'
     supportsHttpsTrafficOnly: true
-    publicNetworkAccess: 'Enabled'
+    publicNetworkAccess: 'Disabled'
   }
 }
 resource blobs 'Microsoft.Storage/storageAccounts/blobServices@2025-01-01' = {
@@ -88,7 +93,11 @@ resource outputRole 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
   }
 }
 
-output openAiEndpoint string = openAi.properties.endpoint
-output deploymentName string = deployment.name
+// AIServices' generic endpoint is for Cognitive Services, not OpenAI v1.
+output openAiEndpoint string = openAi.properties.endpoints['OpenAI Language Model Instance API']
+// Keep the configured deployment name available before the model is provisioned.
+output deploymentName string = modelName
 output storageAccountUrl string = storage.properties.primaryEndpoints.blob
 output storageAccountName string = storage.name
+output foundryId string = openAi.id
+output storageAccountId string = storage.id

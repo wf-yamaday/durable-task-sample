@@ -11,7 +11,7 @@
 - Durable Task RBAC assignments scoped to the task hub
 - Orchestrator and activity worker Container Apps
 - A manually triggered client Container Apps Job (no automatic schedule)
-- Azure OpenAI with a `gpt-5.6-luna` deployment
+- Microsoft Foundry resource (`AIServices`) with a `gpt-5.6-luna` deployment
 - Blob Storage with private `input` and `results` containers
 - Activity identity: Cognitive Services OpenAI User, input Blob Data Reader, results Blob Data Contributor
 
@@ -31,6 +31,12 @@ The template creates `vnet-<workload>-<environment>` with two subnets and `pep-d
 - `snet-pe-...` (`10.0.1.0/24`): hosts the Durable Task Scheduler private endpoint.
 
 The scheduler uses the `scheduler` Private Link subresource. Its public network access is disabled, and `privatelink.durabletask.io` is linked to the virtual network so the normal Scheduler endpoint resolves to the private IP from Container Apps.
+
+The Container Apps environment uses `vnetConfiguration.internal: true` and `publicNetworkAccess: Disabled`. This removes public application ingress; it does not disable outbound internet access. Workers access Foundry and Blob through private endpoints and continue using Managed Identity authentication. The client Job remains manually triggered through Azure Resource Manager. Switching an existing external environment to internal requires deleting its apps and Jobs, deleting the environment, and redeploying; changing the Bicep property alone cannot update the existing environment in place. Preserve Foundry, Blob, DTS, identities, and the VNet during that replacement.
+
+Foundry (`account`) and Storage (`blob`) private endpoints use the existing `snet-pe-...` subnet. Private DNS zones `privatelink.openai.azure.com`, `privatelink.cognitiveservices.azure.com`, `privatelink.services.ai.azure.com`, and `privatelink.blob.core.windows.net` are linked to the workload VNet. Applications retain their normal service URLs; DNS resolves those names to private IPs inside the VNet. Both services have public network access disabled. Local data upload/download and the Foundry playground require VNet connectivity (for example VPN or a host in the VNet) and appropriate DNS/RBAC. ARM resource management remains available from outside the VNet. ACR, authentication, and monitoring are not made private by this change, so this is not an entirely internet-isolated environment.
+
+`scripts/private_network_smoke.py` is a dev-specific test intended to be passed as a one-off `python -u -c` command override to the existing client Job image, not run on the local machine. It checks that all three Foundry hostnames and the Blob hostname resolve to `10.0.1.0/24`, starts exactly one ten-row/two-parallel orchestration, waits for completion, and fails unless all ten reviews succeed. It logs the instance ID and the final output (including the result Blob path and metrics), so verification does not require opening Blob's public endpoint. The script's hostnames and expected subnet are specific to this repository's dev deployment. Do not persist this command override in the normal Job template.
 
 For development-only Dashboard access outside the VNet, explicitly enable public access and restrict it to the operator's public IP:
 
@@ -133,7 +139,24 @@ Configure GitHub Actions OpenID Connect authentication before merging. Create a 
 
 The default model is `gpt-5.6-luna`, version `2026-07-09` from the [official model catalog](https://ai.azure.com/catalog/models/gpt-5.6-luna), `GlobalStandard`, capacity `10`. Availability and quota depend on your subscription and region; Bicep compilation does not validate these. Override `openAiLocation`, `openAiModelName`, `openAiModelVersion`, `openAiDeploymentSku`, or `openAiDeploymentCapacity` as needed. The model must support structured outputs and v1 Chat Completions. GlobalStandard processing is not guaranteed to stay in Japan.
 
-OpenAI and Storage use authenticated public endpoints for this PoC; anonymous Blob access and shared-key/local-key authentication are disabled. Unlike DTS, these resources do **not** have private endpoints. Add Private Link/firewall controls before using sensitive data. Review text and analysis also appear in DTS history.
+Foundry and Storage use Private Link with public network access disabled; anonymous Blob access and shared-key/local-key authentication are also disabled. Run the data-plane commands below from a VNet-connected host with private DNS resolution. Review text and analysis also appear in DTS history.
+
+If model quota is not yet available, provision the Foundry account, Blob Storage, containers, and RBAC first without creating the model:
+
+```sh
+AZURE_RESOURCE_GROUP=<resource-group> \
+mise run infra:deploy -- deployOpenAiModel=false
+```
+
+This leaves the configured model deployment name in the worker settings, but inference cannot run until the model is deployed. Do not start the client Job yet. Once quota is available, redeploy with `deployOpenAiModel=true`. Setting false skips model creation; it does not delete an existing model in an incremental deployment.
+
+### Microsoft Foundry resource
+
+While the GPT-5.6-luna quota request is pending, `main.bicepparam` selects `gpt-5-mini` version `2025-08-07` with reasoning effort `low` and a 4,096-token completion budget (including reasoning). The base template defaults remain GPT-5.6-luna. The worker settings are supplied through environment variables, so this switch does not require a new application image. To return to Luna, update the parameter file's model name/version, reasoning effort (`none`), and completion budget (`1024`).
+
+The account uses `kind: AIServices`, `allowProjectManagement: true`, and a system-assigned managed identity. Existing OpenAI accounts are upgraded in place following the [official migration guidance](https://learn.microsoft.com/en-us/azure/foundry/how-to/upgrade-azure-openai). The existing `aoai-...` resource name, custom subdomain, OpenAI endpoint, and inference RBAC are retained; no account replacement or Blob migration is needed.
+
+The worker continues using the OpenAI v1 API and its user-assigned identity. The `openAi...` Bicep parameters/outputs and `AZURE_OPENAI_...` settings are retained for compatibility. This template does not create a Foundry Project or deploy agents; the Foundry account is enabled for project management so those can be added separately. Changing the resource kind does not increase model quota.
 
 1. Provision with `deployApps=false` as above. This creates the model, storage, and `input`/`results` containers too.
 2. Download [Amazon Fine Food Reviews](https://www.kaggle.com/datasets/snap/amazon-fine-food-reviews) and extract `Reviews.csv`. Check its license before use. Optionally use Kaggle CLI:
@@ -143,6 +166,26 @@ OpenAI and Storage use authenticated public endpoints for this PoC; anonymous Bl
    ```
 
 3. Assign the uploading user `Storage Blob Data Contributor` on the storage account (management-plane Contributor alone is insufficient). The local activity worker user additionally needs `Cognitive Services OpenAI User` on the OpenAI account. Allow time for role propagation.
+
+   For a small smoke test, prepare ten reviews (two per rating) with only `Id`, `Text`, and `Score`. The script reads the archive without extracting the full dataset and refuses to overwrite the output file:
+
+   ```sh
+   mise --cd activity-worker exec -- uv run python ../scripts/prepare_reviews.py \
+     <path-to-amazon-fine-food-reviews.zip> ../data/reviews-smoke.csv
+   ```
+
+   Upload this file as `input/reviews-smoke.csv` instead of the full dataset, then explicitly select it for a single manual execution:
+
+   ```sh
+   az containerapp job start \
+     --resource-group <resource-group> \
+     --name <client-job-name> \
+     --container-name client \
+     --command durable-task-client \
+     --args 10 --parallelism 2 --container input --blob reviews-smoke.csv
+   ```
+
+   This overrides only that execution, not the Job schedule or persistent template. The balanced sample is for smoke testing, not representative accuracy measurement.
 4. Upload using the `storageAccountName` deployment output:
 
    ```sh

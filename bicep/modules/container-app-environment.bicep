@@ -7,10 +7,11 @@ resource workspace 'Microsoft.OperationalInsights/workspaces@2023-09-01' existin
   name: logAnalyticsWorkspaceName
 }
 
-resource environment 'Microsoft.App/managedEnvironments@2024-03-01' = {
+resource environment 'Microsoft.App/managedEnvironments@2025-07-01' = {
   name: name
   location: location
   properties: {
+    publicNetworkAccess: 'Disabled'
     appLogsConfiguration: {
       destination: 'log-analytics'
       logAnalyticsConfiguration: {
@@ -20,7 +21,7 @@ resource environment 'Microsoft.App/managedEnvironments@2024-03-01' = {
     }
     vnetConfiguration: {
       infrastructureSubnetId: infrastructureSubnetId
-      internal: false
+      internal: true
     }
     workloadProfiles: [
       {
